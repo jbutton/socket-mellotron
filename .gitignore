@@ -34,3 +34,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# audio samples (too large for git)
+/public/samples/**/*.wav
+/public/samples/**/*.mp3
+/public/samples/**/*.ogg
