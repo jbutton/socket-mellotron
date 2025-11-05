@@ -191,7 +191,7 @@ export function PianoKeyboard() {
         </div>
       )}
 
-      <div className="relative flex justify-center items-end">
+      <div className="relative flex justify-center">
         {/* White keys */}
         <div className="flex gap-0">
           {whiteKeys.map((key, index) => {
@@ -220,7 +220,7 @@ export function PianoKeyboard() {
           return (
             <div
               key={noteId}
-              className="absolute"
+              className="absolute top-0"
               style={{ left: `${getBlackKeyOffset(originalIndex)}px` }}
             >
               <Key
