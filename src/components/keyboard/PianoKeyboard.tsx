@@ -15,7 +15,7 @@ import { socketClient } from "@/lib/socket/socketClient";
 
 // Keyboard layout mapping (computer keys to piano notes)
 const KEY_MAP: { [key: string]: { note: string; octave: number } } = {
-  // Lower octave (C4-B4)
+  // Lower octave (C4-B4) - Complete octave
   'a': { note: 'C', octave: 4 },
   'w': { note: 'C#', octave: 4 },
   's': { note: 'D', octave: 4 },
@@ -29,13 +29,19 @@ const KEY_MAP: { [key: string]: { note: string; octave: number } } = {
   'u': { note: 'A#', octave: 4 },
   'j': { note: 'B', octave: 4 },
 
-  // Upper octave (C5-C6)
+  // Upper octave (C5-B5) - Complete octave
   'k': { note: 'C', octave: 5 },
   'o': { note: 'C#', octave: 5 },
   'l': { note: 'D', octave: 5 },
   'p': { note: 'D#', octave: 5 },
   ';': { note: 'E', octave: 5 },
   "'": { note: 'F', octave: 5 },
+  '[': { note: 'F#', octave: 5 },
+  ']': { note: 'G', octave: 5 },
+  '\\': { note: 'G#', octave: 5 },
+  'z': { note: 'A', octave: 5 },
+  'x': { note: 'A#', octave: 5 },
+  'c': { note: 'B', octave: 5 },
 };
 
 // Piano keys configuration for 2 octaves
@@ -286,8 +292,8 @@ export function PianoKeyboard() {
       {/* Keyboard shortcuts legend */}
       <div className="mt-6 text-slate-400 text-xs text-center space-y-1">
         <p className="font-semibold text-slate-300">Keyboard Controls:</p>
-        <p>Lower octave: A W S E D F T G Y H U J</p>
-        <p>Upper octave: K O L P ; &apos;</p>
+        <p>Lower octave (C4-B4): A W S E D F T G Y H U J</p>
+        <p>Upper octave (C5-B5): K O L P ; &apos; [ ] \ Z X C</p>
       </div>
     </div>
   );
