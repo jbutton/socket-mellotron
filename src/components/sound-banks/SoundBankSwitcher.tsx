@@ -1,78 +1,87 @@
 "use client";
 
 import { useState } from "react";
-// import { useStore } from "@/lib/store/useStore";
-// import { SoundBank } from "@/types/audio";
+import { useStore } from "@/lib/store/useStore";
+import { toneEngine } from "@/lib/audio/toneEngine";
+import { getAllSoundBanks } from "@/lib/audio/soundBanks";
+import { motion } from "framer-motion";
 
 /**
  * Sound Bank Switcher Component
  *
- * Allows users to switch between different Mellotron sound banks:
- * - Strings (violins, cellos)
- * - Choir/Vocals
- * - Flutes
- * - Brass
- *
- * Features to implement:
- * - Display available sound banks as buttons/cards
- * - Highlight currently selected bank
- * - Load new samples when bank is switched
- * - Show loading state during sample loading
+ * Allows users to switch between different Mellotron sound banks
  */
 
 export function SoundBankSwitcher() {
-  const [currentBank, setCurrentBank] = useState<string>("strings");
+  const currentSoundBank = useStore((state) => state.currentSoundBank);
+  const setCurrentSoundBank = useStore((state) => state.setCurrentSoundBank);
   const [isLoading, setIsLoading] = useState(false);
 
-  // TODO: Fetch available sound banks from store
-  // TODO: Handle bank switching with Tone.js
-  // TODO: Add loading indicator
+  const soundBanks = getAllSoundBanks();
 
-  const soundBanks = [
-    { id: "strings", name: "Strings", icon: "🎻" },
-    { id: "choir", name: "Choir", icon: "🎤" },
-    { id: "flutes", name: "Flutes", icon: "🎵" },
-    { id: "brass", name: "Brass", icon: "🎺" },
-  ];
+  const handleBankChange = async (bankId: string) => {
+    if (bankId === currentSoundBank || isLoading) return;
 
-  const handleBankChange = (bankId: string) => {
-    // TODO: Implement bank switching logic
     setIsLoading(true);
-    setCurrentBank(bankId);
-    // Simulate loading
-    setTimeout(() => setIsLoading(false), 500);
+
+    try {
+      await toneEngine.loadSoundBank(bankId);
+      setCurrentSoundBank(bankId);
+    } catch (error) {
+      console.error("Failed to load sound bank:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="bg-slate-800 rounded-lg p-6 shadow-2xl">
-      <h2 className="text-xl font-semibold text-white mb-4">Sound Banks</h2>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {soundBanks.map((bank) => (
-          <button
-            key={bank.id}
-            onClick={() => handleBankChange(bank.id)}
-            disabled={isLoading}
-            className={`
-              p-4 rounded-lg transition-all
-              ${currentBank === bank.id
-                ? "bg-purple-600 text-white"
-                : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-              }
-              ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-          >
-            <div className="text-3xl mb-2">{bank.icon}</div>
-            <div className="text-sm font-medium">{bank.name}</div>
-          </button>
-        ))}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-white">Sound Banks</h2>
+        {isLoading && (
+          <div className="flex items-center text-slate-400 text-sm">
+            <div className="animate-spin h-4 w-4 border-2 border-purple-500 border-t-transparent rounded-full mr-2"></div>
+            Loading...
+          </div>
+        )}
       </div>
 
-      {isLoading && (
-        <div className="mt-4 text-center text-slate-400">
-          Loading samples...
-        </div>
-      )}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {soundBanks.map((bank) => {
+          const isActive = currentSoundBank === bank.id;
+
+          return (
+            <motion.button
+              key={bank.id}
+              onClick={() => handleBankChange(bank.id)}
+              disabled={isLoading}
+              whileHover={{ scale: isLoading ? 1 : 1.05 }}
+              whileTap={{ scale: isLoading ? 1 : 0.95 }}
+              className={`
+                p-6 rounded-lg transition-all relative overflow-hidden
+                ${isActive
+                  ? "bg-gradient-to-br from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/50"
+                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                }
+                ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+              `}
+            >
+              {/* Active indicator */}
+              {isActive && (
+                <motion.div
+                  className="absolute top-2 right-2 w-2 h-2 bg-green-400 rounded-full"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              )}
+
+              <div className="text-4xl mb-2">{bank.icon}</div>
+              <div className="text-sm font-semibold">{bank.name}</div>
+              <div className="text-xs text-slate-400 mt-1">{bank.description}</div>
+            </motion.button>
+          );
+        })}
+      </div>
     </div>
   );
 }

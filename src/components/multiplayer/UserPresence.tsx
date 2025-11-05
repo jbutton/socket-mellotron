@@ -1,58 +1,78 @@
 "use client";
 
-import { useState, useEffect } from "react";
-// import { useSocket } from "@/lib/socket/socketClient";
-// import { User } from "@/types/user";
+import { useStore } from "@/lib/store/useStore";
+import { Users } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 /**
  * User Presence Component
  *
- * Shows which users are currently online and playing.
- *
- * Features to implement:
- * - Display list of connected users
- * - Show user colors (for key press visualization)
- * - Online/offline status indicators
- * - User count
- * - Optional: User avatars/names
+ * Shows which users are currently online and playing
  */
 
 export function UserPresence() {
-  const [users, setUsers] = useState<Array<{ id: string; color: string; name: string }>>([]);
+  const currentUser = useStore((state) => state.currentUser);
+  const onlineUsers = useStore((state) => state.onlineUsers);
+  const isConnected = useStore((state) => state.isConnected);
 
-  // TODO: Connect to Socket.io for user presence
-  // TODO: Listen for user join/leave events
-  // TODO: Assign colors to users
-
-  useEffect(() => {
-    // Mock data for demonstration
-    setUsers([
-      { id: "1", color: "#8B5CF6", name: "You" },
-      // { id: "2", color: "#10B981", name: "User 2" },
-      // { id: "3", color: "#F59E0B", name: "User 3" },
-    ]);
-  }, []);
+  // Combine current user with online users
+  const allUsers = currentUser
+    ? [currentUser, ...onlineUsers.filter((u) => u.id !== currentUser.id)]
+    : onlineUsers;
 
   return (
     <div className="bg-slate-800 rounded-lg p-4 shadow-xl">
-      <h3 className="text-white font-semibold mb-3">
-        Online ({users.length})
-      </h3>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Users size={20} className="text-purple-400" />
+          <h3 className="text-white font-semibold">
+            Online
+          </h3>
+        </div>
 
-      <div className="space-y-2">
-        {users.map((user) => (
-          <div key={user.id} className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-full"
-              style={{ backgroundColor: user.color }}
-            />
-            <span className="text-slate-300 text-sm">{user.name}</span>
-          </div>
-        ))}
+        <div className="flex items-center gap-2">
+          <div
+            className={`w-2 h-2 rounded-full ${
+              isConnected ? "bg-green-400 animate-pulse" : "bg-red-400"
+            }`}
+          />
+          <span className="text-slate-400 text-xs font-medium">
+            {allUsers.length}
+          </span>
+        </div>
       </div>
 
-      {users.length === 0 && (
-        <p className="text-slate-400 text-sm">No users online</p>
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        <AnimatePresence>
+          {allUsers.map((user) => (
+            <motion.div
+              key={user.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              className="flex items-center gap-3 p-2 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors"
+            >
+              <div
+                className="w-3 h-3 rounded-full ring-2 ring-slate-600"
+                style={{ backgroundColor: user.color }}
+              />
+              <span className="text-slate-300 text-sm flex-1">
+                {user.name || user.id}
+              </span>
+              {user.id === currentUser?.id && (
+                <span className="text-xs text-purple-400 font-medium">(You)</span>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {allUsers.length === 0 && (
+        <div className="text-center py-4">
+          <p className="text-slate-400 text-sm">
+            {isConnected ? "Waiting for users..." : "Not connected"}
+          </p>
+        </div>
       )}
     </div>
   );

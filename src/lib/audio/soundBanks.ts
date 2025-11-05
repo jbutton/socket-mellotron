@@ -18,8 +18,30 @@ export interface SoundBankConfig {
 }
 
 /**
+ * Generate sample mappings for 3 octaves (C3-C6)
+ * Maps note names to sample file paths
+ */
+function generateSampleMap(bankName: string): SampleMap {
+  const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  const octaves = [3, 4, 5];
+  const sampleMap: SampleMap = {};
+
+  octaves.forEach((octave) => {
+    notes.forEach((note) => {
+      const noteName = `${note}${octave}`;
+      sampleMap[noteName] = `${noteName}.wav`;
+    });
+  });
+
+  // Add C6 for the top note
+  sampleMap["C6"] = "C6.wav";
+
+  return sampleMap;
+}
+
+/**
  * Sound bank definitions
- * TODO: Add actual sample file paths once samples are sourced
+ * Samples should be placed in /public/samples/[bank-id]/
  */
 export const soundBanks: SoundBankConfig[] = [
   {
@@ -27,39 +49,28 @@ export const soundBanks: SoundBankConfig[] = [
     name: "Strings",
     description: "Lush orchestral strings (violins, cellos)",
     icon: "🎻",
-    samples: {
-      // TODO: Add sample paths
-      // "C3": "C3.wav",
-      // "D3": "D3.wav",
-      // ... etc
-    },
+    samples: generateSampleMap("strings"),
   },
   {
     id: "choir",
     name: "Choir",
     description: "Mellotron's iconic choir sound",
     icon: "🎤",
-    samples: {
-      // TODO: Add sample paths
-    },
+    samples: generateSampleMap("choir"),
   },
   {
     id: "flutes",
     name: "Flutes",
     description: "Soft, melodic flute ensemble",
     icon: "🎵",
-    samples: {
-      // TODO: Add sample paths
-    },
+    samples: generateSampleMap("flutes"),
   },
   {
     id: "brass",
     name: "Brass",
     description: "Bold brass section",
     icon: "🎺",
-    samples: {
-      // TODO: Add sample paths
-    },
+    samples: generateSampleMap("brass"),
   },
 ];
 
