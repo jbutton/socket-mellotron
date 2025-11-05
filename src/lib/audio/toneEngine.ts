@@ -1,18 +1,11 @@
 import * as Tone from "tone";
-// import { SoundBank } from "@/types/audio";
+import { getSoundBank, type SoundBankConfig } from "./soundBanks";
 
 /**
  * Tone.js Audio Engine
  *
- * Manages all audio playback, sampling, and effects.
- *
- * Features to implement:
- * - Initialize Tone.js context
- * - Load sound bank samples
- * - Play/stop notes with proper ADSR envelope
- * - Apply effects (reverb, delay, filter)
- * - Master volume control
- * - Handle audio context resume (browser autoplay policies)
+ * Manages all audio playback, sampling, and effects for the Mellotron.
+ * Handles sound bank loading, note playback, and effects chain.
  */
 
 class ToneEngine {
@@ -21,6 +14,8 @@ class ToneEngine {
   private delay: Tone.FeedbackDelay | null = null;
   private volume: Tone.Volume | null = null;
   private isInitialized = false;
+  private currentBankId: string | null = null;
+  private loadingPromise: Promise<void> | null = null;
 
   /**
    * Initialize the audio engine
@@ -33,44 +28,102 @@ class ToneEngine {
       await Tone.start();
       console.log("Tone.js audio context started");
 
-      // Initialize effects chain
+      // Initialize effects chain: Volume -> Reverb -> Delay -> Destination
       this.volume = new Tone.Volume(0).toDestination();
-      this.reverb = new Tone.Reverb({ decay: 2, wet: 0.3 });
-      this.delay = new Tone.FeedbackDelay("8n", 0.3);
+      this.reverb = new Tone.Reverb({ decay: 2, wet: 0.3 }).connect(this.volume);
+      this.delay = new Tone.FeedbackDelay("8n", 0.3).connect(this.reverb);
 
-      // TODO: Load initial sound bank
-      // this.loadSoundBank("strings");
+      // Load initial sound bank
+      await this.loadSoundBank("strings");
 
       this.isInitialized = true;
+      console.log("Audio engine initialized successfully");
     } catch (error) {
       console.error("Failed to initialize audio engine:", error);
+      throw error;
     }
   }
 
   /**
    * Load a sound bank with samples
-   * @param bankName - Name of the sound bank to load
+   * @param bankId - ID of the sound bank to load
    */
-  async loadSoundBank(bankName: string) {
-    // TODO: Load samples from /public/samples/{bankName}/
-    // TODO: Create Tone.Sampler with loaded samples
-    // TODO: Connect sampler to effects chain
+  async loadSoundBank(bankId: string) {
+    // Prevent duplicate loading
+    if (this.currentBankId === bankId && this.sampler) {
+      console.log(`Sound bank "${bankId}" already loaded`);
+      return;
+    }
 
-    console.log(`Loading sound bank: ${bankName}`);
+    // If already loading, wait for it
+    if (this.loadingPromise) {
+      await this.loadingPromise;
+      return;
+    }
 
-    // Example: Create sampler with sample URLs
-    // this.sampler = new Tone.Sampler({
-    //   urls: {
-    //     C4: "C4.wav",
-    //     D4: "D4.wav",
-    //     E4: "E4.wav",
-    //     // ... more samples
-    //   },
-    //   baseUrl: `/samples/${bankName}/`,
-    //   onload: () => {
-    //     console.log("Samples loaded");
-    //   },
-    // }).connect(this.reverb!);
+    this.loadingPromise = this._loadSoundBankInternal(bankId);
+    await this.loadingPromise;
+    this.loadingPromise = null;
+  }
+
+  private async _loadSoundBankInternal(bankId: string) {
+    console.log(`Loading sound bank: ${bankId}`);
+
+    const soundBank = getSoundBank(bankId);
+    if (!soundBank) {
+      console.error(`Sound bank "${bankId}" not found`);
+      return;
+    }
+
+    // Dispose of existing sampler
+    if (this.sampler) {
+      this.sampler.dispose();
+      this.sampler = null;
+    }
+
+    // Create new sampler with sound bank samples
+    return new Promise<void>((resolve, reject) => {
+      try {
+        this.sampler = new Tone.Sampler({
+          urls: soundBank.samples,
+          baseUrl: `/samples/${bankId}/`,
+          onload: () => {
+            console.log(`Sound bank "${bankId}" loaded successfully`);
+            this.currentBankId = bankId;
+            resolve();
+          },
+          onerror: (error) => {
+            console.error(`Failed to load sound bank "${bankId}":`, error);
+            // Create a simple synth as fallback
+            this.createFallbackSynth();
+            resolve(); // Resolve anyway so app doesn't hang
+          },
+        }).connect(this.delay!);
+      } catch (error) {
+        console.error(`Error creating sampler:`, error);
+        this.createFallbackSynth();
+        resolve();
+      }
+    });
+  }
+
+  /**
+   * Create a simple synth as fallback when samples fail to load
+   */
+  private createFallbackSynth() {
+    console.log("Creating fallback synth (samples not found)");
+    // Use a simple PolySynth as fallback
+    const polySynth = new Tone.PolySynth(Tone.Synth, {
+      envelope: {
+        attack: 0.02,
+        decay: 0.1,
+        sustain: 0.7,
+        release: 0.8,
+      },
+    }).connect(this.delay!);
+
+    // Wrap PolySynth to work like Sampler
+    this.sampler = polySynth as any;
   }
 
   /**
@@ -80,13 +133,20 @@ class ToneEngine {
    */
   playNote(note: string, velocity: number = 0.8) {
     if (!this.isInitialized || !this.sampler) {
-      console.warn("Audio engine not initialized");
+      console.warn("Audio engine not initialized or sampler not loaded");
       return;
     }
 
-    // TODO: Trigger note with sampler
-    // this.sampler.triggerAttack(note, Tone.now(), velocity);
-    console.log(`Playing note: ${note} at velocity ${velocity}`);
+    try {
+      // Ensure audio context is running
+      if (Tone.context.state !== "running") {
+        Tone.context.resume();
+      }
+
+      this.sampler.triggerAttack(note, Tone.now(), velocity);
+    } catch (error) {
+      console.error(`Error playing note ${note}:`, error);
+    }
   }
 
   /**
@@ -96,9 +156,11 @@ class ToneEngine {
   stopNote(note: string) {
     if (!this.isInitialized || !this.sampler) return;
 
-    // TODO: Release note with sampler
-    // this.sampler.triggerRelease(note, Tone.now());
-    console.log(`Stopping note: ${note}`);
+    try {
+      this.sampler.triggerRelease(note, Tone.now());
+    } catch (error) {
+      console.error(`Error stopping note ${note}:`, error);
+    }
   }
 
   /**
@@ -134,6 +196,20 @@ class ToneEngine {
   }
 
   /**
+   * Get initialization status
+   */
+  getIsInitialized(): boolean {
+    return this.isInitialized;
+  }
+
+  /**
+   * Get current sound bank ID
+   */
+  getCurrentBankId(): string | null {
+    return this.currentBankId;
+  }
+
+  /**
    * Clean up resources
    */
   dispose() {
@@ -142,6 +218,7 @@ class ToneEngine {
     this.delay?.dispose();
     this.volume?.dispose();
     this.isInitialized = false;
+    this.currentBankId = null;
   }
 }
 

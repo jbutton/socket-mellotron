@@ -28,12 +28,13 @@ class SocketClient {
       return;
     }
 
-    // TODO: Update URL based on environment
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3000";
 
     this.socket = io(socketUrl, {
-      path: "/api/socket",
       transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
     });
 
     this.setupEventListeners();
@@ -67,45 +68,58 @@ class SocketClient {
   }
 
   /**
-   * Emit a key press event
+   * Emit a note press event
    */
-  emitKeyPress(note: string, octave: number, velocity: number) {
+  emitNotePress(note: string, octave: number, velocity: number = 0.8) {
     if (!this.socket || !this.isConnected) {
-      console.warn("Socket not connected");
       return;
     }
 
-    this.socket.emit("keyPress", { note, octave, velocity });
+    this.socket.emit("notePress", { note, octave, velocity });
   }
 
   /**
-   * Emit a key release event
+   * Emit a note release event
    */
-  emitKeyRelease(note: string, octave: number) {
+  emitNoteRelease(note: string, octave: number) {
     if (!this.socket || !this.isConnected) return;
 
-    this.socket.emit("keyRelease", { note, octave });
+    this.socket.emit("noteRelease", { note, octave });
   }
 
   /**
-   * Subscribe to key press events
+   * Subscribe to remote note press events
    */
-  onKeyPress(callback: (data: any) => void) {
-    this.socket?.on("keyPress", callback);
+  onRemoteNotePress(callback: (data: any) => void) {
+    this.socket?.on("remoteNotePress", callback);
   }
 
   /**
-   * Subscribe to key release events
+   * Subscribe to remote note release events
    */
-  onKeyRelease(callback: (data: any) => void) {
-    this.socket?.on("keyRelease", callback);
+  onRemoteNoteRelease(callback: (data: any) => void) {
+    this.socket?.on("remoteNoteRelease", callback);
+  }
+
+  /**
+   * Subscribe to user info event (sent when connecting)
+   */
+  onUserInfo(callback: (data: { id: string; color: string }) => void) {
+    this.socket?.on("userInfo", callback);
   }
 
   /**
    * Subscribe to user presence updates
    */
-  onUserPresence(callback: (users: any[]) => void) {
+  onUserPresence(callback: (users: Array<{ id: string; color: string }>) => void) {
     this.socket?.on("userPresence", callback);
+  }
+
+  /**
+   * Get the socket instance
+   */
+  getSocket(): Socket | null {
+    return this.socket;
   }
 
   /**
