@@ -8,6 +8,7 @@ interface KeyProps {
   isBlack?: boolean;
   isPressed?: boolean;
   userColor?: string; // Color for remote user press
+  tapeProgress?: number; // 0-1, how much tape has been used
   onPress: () => void;
   onRelease: () => void;
 }
@@ -30,6 +31,7 @@ export function Key({
   isBlack = false,
   isPressed = false,
   userColor,
+  tapeProgress = 0,
   onPress,
   onRelease,
 }: KeyProps) {
@@ -104,6 +106,31 @@ export function Key({
           animate={{ opacity: 0.3 }}
           exit={{ opacity: 0 }}
         />
+      )}
+
+      {/* Tape progress indicator - shows when note is playing */}
+      {isPressed && tapeProgress > 0 && (
+        <motion.div
+          className="absolute bottom-0 left-0 right-0 pointer-events-none overflow-hidden rounded-b-md"
+          initial={{ height: 0 }}
+          animate={{ height: `${tapeProgress * 100}%` }}
+          transition={{ duration: 0.1, ease: "linear" }}
+        >
+          <div
+            className={`absolute inset-0 ${
+              isBlack
+                ? "bg-gradient-to-t from-purple-500/40 to-purple-400/20"
+                : "bg-gradient-to-t from-purple-400/30 to-purple-300/10"
+            }`}
+          />
+          {/* Animated tape reel effect */}
+          <div
+            className="absolute bottom-0 left-0 right-0 h-1 opacity-60"
+            style={{
+              backgroundColor: tapeProgress > 0.8 ? "#ef4444" : "#a78bfa",
+            }}
+          />
+        </motion.div>
       )}
     </motion.button>
   );

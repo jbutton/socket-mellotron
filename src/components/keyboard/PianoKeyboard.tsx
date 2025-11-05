@@ -75,11 +75,47 @@ const PIANO_KEYS = [
 export function PianoKeyboard() {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   const [audioInitialized, setAudioInitialized] = useState(false);
+  const [tapeProgress, setTapeProgress] = useState<Map<string, number>>(new Map());
   const pressedKeysRef = useRef(pressedKeys);
+  const animationFrameRef = useRef<number>();
 
   // Update ref when state changes
   useEffect(() => {
     pressedKeysRef.current = pressedKeys;
+  }, [pressedKeys]);
+
+  // Update tape progress for all active keys
+  useEffect(() => {
+    const updateProgress = () => {
+      const newProgress = new Map<string, number>();
+      const tapeDuration = toneEngine.getTapeDuration();
+
+      pressedKeys.forEach((noteId) => {
+        const playbackTime = toneEngine.getNotePlaybackTime(noteId);
+        if (playbackTime !== null) {
+          // Calculate progress as 0-1
+          const progress = Math.min(playbackTime / tapeDuration, 1);
+          newProgress.set(noteId, progress);
+        }
+      });
+
+      setTapeProgress(newProgress);
+
+      // Continue animation if there are active keys
+      if (pressedKeys.size > 0) {
+        animationFrameRef.current = requestAnimationFrame(updateProgress);
+      }
+    };
+
+    if (pressedKeys.size > 0) {
+      animationFrameRef.current = requestAnimationFrame(updateProgress);
+    }
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, [pressedKeys]);
 
   // Initialize audio engine on first user interaction
@@ -120,7 +156,16 @@ export function PianoKeyboard() {
     if (pressedKeysRef.current.has(noteId)) return;
 
     setPressedKeys(prev => new Set(prev).add(noteId));
-    toneEngine.playNote(noteId);
+
+    // Play note with callback for when tape ends
+    toneEngine.playNote(noteId, 0.8, () => {
+      // Tape ended - remove from pressed keys
+      setPressedKeys(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(noteId);
+        return newSet;
+      });
+    });
 
     // Broadcast to other users via Socket.io
     socketClient.emitNotePress(note, octave, 0.8);
@@ -203,6 +248,7 @@ export function PianoKeyboard() {
                 octave={key.octave}
                 isBlack={false}
                 isPressed={pressedKeys.has(noteId)}
+                tapeProgress={tapeProgress.get(noteId) || 0}
                 onPress={() => handleNotePress(key.note, key.octave)}
                 onRelease={() => handleNoteRelease(key.note, key.octave)}
               />
@@ -228,6 +274,7 @@ export function PianoKeyboard() {
                 octave={key.octave}
                 isBlack={true}
                 isPressed={pressedKeys.has(noteId)}
+                tapeProgress={tapeProgress.get(noteId) || 0}
                 onPress={() => handleNotePress(key.note, key.octave)}
                 onRelease={() => handleNoteRelease(key.note, key.octave)}
               />
