@@ -40,6 +40,66 @@ function generateSampleMap(bankName: string): SampleMap {
 }
 
 /**
+ * Minimal sample map for testing with just a few samples
+ * Tone.js will interpolate missing notes from available samples
+ */
+function generateMinimalSampleMap(): SampleMap {
+  return {
+    C4: "C4.wav",
+    D4: "D4.wav",
+  };
+}
+
+/**
+ * Generate sample map for professional strings library
+ * Maps to actual available samples (G2-F5)
+ * Note: # symbols are URL-encoded as %23 for proper HTTP requests
+ */
+function generateProfessionalStringsSampleMap(): SampleMap {
+  return {
+    // Octave 2
+    "G2": "G2.wav",
+    "G#2": "G%232.wav",  // URL-encoded
+    "A2": "A2.wav",
+    "A#2": "A%232.wav",  // URL-encoded
+    "B2": "B2.wav",
+    // Octave 3
+    "C3": "C3.wav",
+    "C#3": "C%233.wav",  // URL-encoded
+    "D3": "D3.wav",
+    "D#3": "D%233.wav",  // URL-encoded
+    "E3": "E3.wav",
+    "F3": "F3.wav",
+    "F#3": "F%233.wav",  // URL-encoded
+    "G3": "G3.wav",
+    "G#3": "G%233.wav",  // URL-encoded
+    "A3": "A3.wav",
+    "A#3": "A%233.wav",  // URL-encoded
+    "B3": "B3.wav",
+    // Octave 4
+    "C4": "C4.wav",
+    "C#4": "C%234.wav",  // URL-encoded
+    "D4": "D4.wav",
+    "D#4": "D%234.wav",  // URL-encoded
+    "E4": "E4.wav",
+    "F4": "F4.wav",
+    "F#4": "F%234.wav",  // URL-encoded
+    "G4": "G4.wav",
+    "G#4": "G%234.wav",  // URL-encoded
+    "A4": "A4.wav",
+    "A#4": "A%234.wav",  // URL-encoded
+    "B4": "B4.wav",
+    // Octave 5
+    "C5": "C5.wav",
+    "C#5": "C%235.wav",  // URL-encoded
+    "D5": "D5.wav",
+    "D#5": "D%235.wav",  // URL-encoded
+    "E5": "E5.wav",
+    "F5": "F5.wav",
+  };
+}
+
+/**
  * Sound bank definitions
  * Samples should be placed in /public/samples/[bank-id]/
  */
@@ -49,7 +109,7 @@ export const soundBanks: SoundBankConfig[] = [
     name: "Strings",
     description: "Lush orchestral strings (violins, cellos)",
     icon: "🎻",
-    samples: generateSampleMap("strings"),
+    samples: generateProfessionalStringsSampleMap(), // Professional strings library
   },
   {
     id: "choir",
